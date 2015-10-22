@@ -5,6 +5,8 @@ package person
 
 import (
 	"encoding/binary"
+	"reflect"
+	"unsafe"
 
 	"github.com/dchest/varuint"
 
@@ -62,8 +64,11 @@ func (v *PersonV2View) Name() string {
 	if end > len(v.data) {
 		return ""
 	}
-	b := v.data[slotsLenPersonV2View+n : end]
-	return string(b)
+	var s string
+	p := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	p.Data = uintptr(unsafe.Pointer(&v.data[slotsLenPersonV2View+n]))
+	p.Len = int(l)
+	return s
 }
 
 func NewMyProtocolView(data []byte) (MyProtocolMessage, error) {
