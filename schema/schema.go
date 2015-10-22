@@ -1,7 +1,16 @@
 package schema
 
+import (
+	"bytes"
+	"go/format"
+	"io"
+	"log"
+)
+
 type Schema interface {
 	isSchema()
+
+	Generate(dst io.Writer, pkg string) error
 }
 
 type Versioned struct {
@@ -16,10 +25,40 @@ type SchemaV1 struct {
 
 func (*SchemaV1) isSchema() {}
 
+func (s *SchemaV1) Generate(dst io.Writer, pkg string) error {
+	const debug = false
+
+	var buf bytes.Buffer
+
+	data := &genData{
+		Package: pkg,
+		Schema:  s,
+	}
+	if err := codegen.Execute(&buf, data); err != nil {
+		return err
+	}
+	pretty, err := format.Source(buf.Bytes())
+	if err != nil {
+		if debug {
+			log.Printf("gofmt: %v", err)
+			pretty = buf.Bytes()
+		} else {
+			return err
+		}
+	}
+	if _, err := dst.Write(pretty); err != nil {
+		return err
+	}
+	return nil
+}
+
 type Envelope map[uint]Versioned
 
 type Message interface {
 	isMessage()
+
+	GetSlots() []Slot
+	GetFields() []Field
 }
 
 type FixedMessage struct {
@@ -32,6 +71,9 @@ func (*FixedMessage) isMessage() {}
 func (*FixedMessage) isSlot()    {}
 func (*FixedMessage) isField()   {}
 
+func (m *FixedMessage) GetSlots() []Slot   { return m.Slots }
+func (m *FixedMessage) GetFields() []Field { return nil }
+
 type VarMessage struct {
 	WireFormat uint32
 	Options    MessageOptions
@@ -41,6 +83,9 @@ type VarMessage struct {
 
 func (*VarMessage) isMessage() {}
 func (*VarMessage) isField()   {}
+
+func (m *VarMessage) GetSlots() []Slot   { return m.Slots }
+func (m *VarMessage) GetFields() []Field { return m.Fields }
 
 type MessageOptions struct {
 	Align uint32
@@ -53,6 +98,10 @@ type Slot struct {
 
 type SlotType interface {
 	isSlot()
+
+	SlotSize() uint64
+	GoType() string
+	GoSlotGetter() string
 }
 
 type Field struct {
@@ -63,6 +112,22 @@ type Field struct {
 
 type FieldType interface {
 	isField()
+
+	GoType() string
+
+	// Return the data type sufficient to hold data for fast field access.
+	GoStateType() string
+
+	// Return a template code snippet that assigns to the field given
+	// in stateVar whatever is needed for later fast field access.
+	// Local variable `data` is a `[]byte` with the field contents.
+	//
+	// If field data is malformed, do `return nil, err`.
+	//
+	// TODO this only really implements length-prefixed fields
+	GoFieldPrep(stateVar string) string
+
+	GoFieldGetter(stateVar string) string
 }
 
 type FieldOptions struct {

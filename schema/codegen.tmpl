@@ -1,0 +1,117 @@
+// {{.Warning}}
+
+package {{.Package}}
+
+import (
+	"encoding/binary"
+	"io"
+	"reflect"
+	"unsafe"
+
+	"github.com/dchest/varuint"
+	"chitin.io/chitin"
+)
+
+// use all packages to avoid errors
+var (
+	_ = io.ErrUnexpectedEOF
+	_ reflect.StringHeader
+	_ unsafe.Pointer
+	_ = varuint.Uint64
+)
+
+{{range $ver, $msg := .Schema.Messages}}
+
+{{$type := printf "%sV%d" $ver.Name $ver.Version}}
+func New{{$type}}View(data []byte) (*{{$type}}View, error) {
+	if len(data) < minLen{{$type}}View {
+		return nil, chitin.ErrWrongSize
+	}
+	view := &{{$type}}View{
+		data: data,
+	}
+	return view, nil
+}
+
+{{$slots := $msg.GetSlots}}
+{{$fields := $msg.GetFields}}
+{{$slotOffsets := slotOffsets $slots}}
+{{$fieldsOffset := offsetEnd $slotOffsets}}
+
+const (
+	slotsLen{{$type}}View  = {{$fieldsOffset}}
+	numFields{{$type}}View = {{len $fields}}
+	minLen{{$type}}View    = slotsLen{{$type}}View + 1*numFields{{$type}}View
+)
+
+type {{$type}}View struct {
+	data []byte
+}
+
+{{range $slotIdx, $slot := $slots}}
+func (v *{{$type}}View) {{$slot.Name | ucFirst}}() {{$slot.Kind.GoType}} {
+	data := v.data[{{(index $slotOffsets $slotIdx).Start}}:{{(index $slotOffsets $slotIdx).Stop}}]
+	{{$slot.Kind.GoSlotGetter}}
+}
+{{end}}
+
+{{if $fields}}
+func (v *{{$type}}View) Fields() (*{{$type}}ViewFields, error) {
+	f := &{{$type}}ViewFields{}
+	off := slotsLen{{$type}}View
+
+	// TODO this only really implements length-prefixed fields
+
+	{{range $fieldIdx, $field := $fields}}
+loop:
+	l, n := varuint.Uint64(v.data[off:])
+	if n < 0 {
+		return nil, io.ErrUnexpectedEOF
+	}
+	if l == 0 {
+		// padding
+		off += n
+		goto loop
+	}
+	l--
+
+	const maxInt = int(^uint(0) >> 1)
+	if l > uint64(maxInt) {
+		// technically, it has to be truncated because it wouldn't fit
+		// in memory ;)
+		return nil, io.ErrUnexpectedEOF
+	}
+	li := int(l)
+
+	// TODO prevent overflow here
+	end := slotsLen{{$type}}View + n + li
+	if end > len(v.data) {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	low := off + n
+	high := low + li
+	data := v.data[low:high]
+
+	{ {{$field.Kind.GoFieldPrep (printf "f.field%s" ($field.Name | ucFirst))}} }
+	off = high
+	{{end}}
+
+	return f, nil
+}
+
+type {{$type}}ViewFields struct {
+	{{range $fieldIdx, $field := $fields}}
+	field{{$field.Name | ucFirst}} {{$field.Kind.GoStateType}}
+	{{end}}
+}
+
+{{range $fieldIdx, $field := $fields}}
+func (f *{{$type}}ViewFields) {{$field.Name | ucFirst}}() {{$field.Kind.GoType}} {
+	{{$field.Kind.GoFieldGetter (printf "f.field%s" ($field.Name | ucFirst))}}
+}
+{{end}}
+
+{{end}}
+
+{{end}}
