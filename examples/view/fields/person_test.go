@@ -22,7 +22,11 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%q is %d years old.\n", view.Name(), view.Age())
+	fields, err := view.Fields()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%q is %d years old.\n", fields.Name(), view.Age())
 
 	// Output:
 	// "Jane" is 21 years old.
