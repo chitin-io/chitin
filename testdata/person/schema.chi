@@ -10,5 +10,6 @@ message Person v2 {
 
 	fields {
 	       name string
+	       phone string
 	}
 }

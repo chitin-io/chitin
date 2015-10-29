@@ -31,6 +31,10 @@ func run() error {
 						Name: "name",
 						Kind: schema.String{},
 					},
+					{
+						Name: "phone",
+						Kind: schema.String{},
+					},
 				},
 			},
 		},

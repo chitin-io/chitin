@@ -35,6 +35,10 @@ func TestViewSlot(t *testing.T) {
 		5,
 		// name
 		'J', 'a', 'n', 'e',
+		// len of phone +1
+		7,
+		// phone
+		'5', '5', '5', '-', '4', '2',
 	}
 	view, err := person.NewPersonV2View(input)
 	if err != nil {
@@ -58,6 +62,10 @@ func TestViewField(t *testing.T) {
 		5,
 		// name
 		'J', 'a', 'n', 'e',
+		// len of phone +1
+		7,
+		// phone
+		'5', '5', '5', '-', '4', '2',
 	}
 	view, err := person.NewPersonV2View(input)
 	if err != nil {
@@ -68,6 +76,9 @@ func TestViewField(t *testing.T) {
 		t.Fatalf("cannot access fields: %v", err)
 	}
 	if g, e := fields.Name(), `Jane`; g != e {
+		t.Errorf("wrong name: %q != %q", g, e)
+	}
+	if g, e := fields.Phone(), `555-42`; g != e {
 		t.Errorf("wrong name: %q != %q", g, e)
 	}
 }
@@ -84,6 +95,12 @@ func TestViewFieldPadding(t *testing.T) {
 		5,
 		// name
 		'J', 'a', 'n', 'e',
+		// padding
+		0,
+		// len of phone +1
+		7,
+		// phone
+		'5', '5', '5', '-', '4', '2',
 	}
 	view, err := person.NewPersonV2View(input)
 	if err != nil {
@@ -108,7 +125,11 @@ func TestViewFieldBadTruncated(t *testing.T) {
 		// len of name +1
 		5,
 		// name
-		'J', 'a', 'n',
+		'J', 'a', 'n', 'e',
+		// len of phone +1
+		7,
+		// phone
+		'5', '5', '5', '-', '4',
 	}
 
 	for i := len(input); i >= 4; i-- {
@@ -131,7 +152,11 @@ func TestViewFieldBadTruncatedLen(t *testing.T) {
 		0, 21,
 		// siblings
 		0, 3,
-		// len of name +1, truncated varuint
+		// len of name +1
+		5,
+		// name
+		'J', 'a', 'n', 'e',
+		// len of phone +1, truncated varuint
 		241,
 	}
 	view, err := person.NewPersonV2View(input)
