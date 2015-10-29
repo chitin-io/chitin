@@ -1,5 +1,7 @@
 package person_test
 
+//go:generate go run gen.go
+
 import (
 	"fmt"
 	"log"
