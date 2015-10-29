@@ -18,9 +18,14 @@ func (String) GoStateType() string {
 
 func (String) GoFieldPrep(stateVar string) string {
 	return fmt.Sprintf(`
+	msg, next, err := chitinParseLengthPrefixed(data)
+	if err != nil {
+		return nil, err
+	}
 	p := (*reflect.StringHeader)(unsafe.Pointer(&%s))
-	p.Data = uintptr(unsafe.Pointer(&data[0]))
-	p.Len = len(data)
+	p.Data = uintptr(unsafe.Pointer(&msg[0]))
+	p.Len = len(msg)
+	data = next
 `, stateVar)
 }
 

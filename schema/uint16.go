@@ -26,8 +26,18 @@ func (Uint16) GoSlotGetter() string {
 func (Uint16) GoStateType() string { return `uint16` }
 
 func (Uint16) GoFieldPrep(stateVar string) string {
-	// TODO not a length-prefixed field
-	return fmt.Sprintf(`%s = binary.BigEndian.Uint16(data)`, stateVar)
+	return fmt.Sprintf(`
+	v, n := varuint.Uint64(data)
+	if n < 0 {
+		return nil, io.ErrUnexpectedEOF
+	}
+	const maxUint16 = ^uint16(0)
+	if v > maxUint16 {
+		return nil, errors.New("value overflows uint16")
+	}
+	%s = uint16(v)
+	data = data[n:]
+`, stateVar)
 }
 
 func (Uint16) GoFieldGetter(stateVar string) string {

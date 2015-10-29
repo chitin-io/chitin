@@ -120,11 +120,11 @@ type FieldType interface {
 
 	// Return a template code snippet that assigns to the field given
 	// in stateVar whatever is needed for later fast field access.
-	// Local variable `data` is a `[]byte` with the field contents.
+	// Local variable `data` is a `[]byte` with the unprocessed part
+	// of the message, and is to be updated to point past the current
+	// message.
 	//
 	// If field data is malformed, do `return nil, err`.
-	//
-	// TODO this only really implements length-prefixed fields
 	GoFieldPrep(stateVar string) string
 
 	GoFieldGetter(stateVar string) string

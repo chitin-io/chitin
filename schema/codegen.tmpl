@@ -20,6 +20,38 @@ var (
 	_ = varuint.Uint64
 )
 
+func chitinParseLengthPrefixed(data []byte) (msg []byte, next []byte, err error) {
+loop:
+	l, n := varuint.Uint64(data)
+	if n < 0 {
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+	if l == 0 {
+		// padding
+		data = data[n:]
+		goto loop
+	}
+	l--
+
+	const maxInt = int(^uint(0) >> 1)
+	if l > uint64(maxInt) {
+		// technically, it has to be truncated because it wouldn't fit
+		// in memory ;)
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+	li := int(l)
+
+	// TODO prevent overflow here
+	end := n + li
+	if end > len(data) {
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+
+	low := n
+	high := low + li
+	return data[low:high], data[high:], nil
+}
+
 {{range $ver, $msg := .Schema.Messages}}
 
 {{$type := printf "%sV%d" $ver.Name $ver.Version}}
@@ -58,46 +90,10 @@ func (v *{{$type}}View) {{$slot.Name | ucFirst}}() {{$slot.Kind.GoType}} {
 {{if $fields}}
 func (v *{{$type}}View) Fields() (*{{$type}}ViewFields, error) {
 	f := &{{$type}}ViewFields{}
-	off := slotsLen{{$type}}View
-
-	// TODO this only really implements length-prefixed fields
+	data := v.data[slotsLen{{$type}}View:]
 
 	{{range $fieldIdx, $field := $fields}}
-	{{$loop := printf "loop%s" ($field.Name | ucFirst)}}
-	{
-	{{$loop}}:
-		l, n := varuint.Uint64(v.data[off:])
-		if n < 0 {
-			return nil, io.ErrUnexpectedEOF
-		}
-		if l == 0 {
-			// padding
-			off += n
-			goto {{$loop}}
-		}
-		l--
-
-		const maxInt = int(^uint(0) >> 1)
-		if l > uint64(maxInt) {
-			// technically, it has to be truncated because it wouldn't fit
-			// in memory ;)
-			return nil, io.ErrUnexpectedEOF
-		}
-		li := int(l)
-
-		// TODO prevent overflow here
-		end := off + n + li
-		if end > len(v.data) {
-			return nil, io.ErrUnexpectedEOF
-		}
-
-		low := off + n
-		high := low + li
-		data := v.data[low:high]
-
-		{ {{$field.Kind.GoFieldPrep (printf "f.field%s" ($field.Name | ucFirst))}} }
-		off = high
-	}
+	{ {{$field.Kind.GoFieldPrep (printf "f.field%s" ($field.Name | ucFirst))}} }
 	{{end}}
 
 	return f, nil

@@ -20,6 +20,38 @@ var (
 	_ = varuint.Uint64
 )
 
+func chitinParseLengthPrefixed(data []byte) (msg []byte, next []byte, err error) {
+loop:
+	l, n := varuint.Uint64(data)
+	if n < 0 {
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+	if l == 0 {
+		// padding
+		data = data[n:]
+		goto loop
+	}
+	l--
+
+	const maxInt = int(^uint(0) >> 1)
+	if l > uint64(maxInt) {
+		// technically, it has to be truncated because it wouldn't fit
+		// in memory ;)
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+	li := int(l)
+
+	// TODO prevent overflow here
+	end := n + li
+	if end > len(data) {
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+
+	low := n
+	high := low + li
+	return data[low:high], data[high:], nil
+}
+
 func NewPersonV1View(data []byte) (*PersonV1View, error) {
 	if len(data) < minLenPersonV1View {
 		return nil, chitin.ErrWrongSize

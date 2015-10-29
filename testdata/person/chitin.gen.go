@@ -20,6 +20,38 @@ var (
 	_ = varuint.Uint64
 )
 
+func chitinParseLengthPrefixed(data []byte) (msg []byte, next []byte, err error) {
+loop:
+	l, n := varuint.Uint64(data)
+	if n < 0 {
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+	if l == 0 {
+		// padding
+		data = data[n:]
+		goto loop
+	}
+	l--
+
+	const maxInt = int(^uint(0) >> 1)
+	if l > uint64(maxInt) {
+		// technically, it has to be truncated because it wouldn't fit
+		// in memory ;)
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+	li := int(l)
+
+	// TODO prevent overflow here
+	end := n + li
+	if end > len(data) {
+		return nil, nil, io.ErrUnexpectedEOF
+	}
+
+	low := n
+	high := low + li
+	return data[low:high], data[high:], nil
+}
+
 func NewPersonV2View(data []byte) (*PersonV2View, error) {
 	if len(data) < minLenPersonV2View {
 		return nil, chitin.ErrWrongSize
@@ -52,86 +84,28 @@ func (v *PersonV2View) Siblings() uint16 {
 
 func (v *PersonV2View) Fields() (*PersonV2ViewFields, error) {
 	f := &PersonV2ViewFields{}
-	off := slotsLenPersonV2View
-
-	// TODO this only really implements length-prefixed fields
+	data := v.data[slotsLenPersonV2View:]
 
 	{
-	loopName:
-		l, n := varuint.Uint64(v.data[off:])
-		if n < 0 {
-			return nil, io.ErrUnexpectedEOF
+		msg, next, err := chitinParseLengthPrefixed(data)
+		if err != nil {
+			return nil, err
 		}
-		if l == 0 {
-			// padding
-			off += n
-			goto loopName
-		}
-		l--
-
-		const maxInt = int(^uint(0) >> 1)
-		if l > uint64(maxInt) {
-			// technically, it has to be truncated because it wouldn't fit
-			// in memory ;)
-			return nil, io.ErrUnexpectedEOF
-		}
-		li := int(l)
-
-		// TODO prevent overflow here
-		end := off + n + li
-		if end > len(v.data) {
-			return nil, io.ErrUnexpectedEOF
-		}
-
-		low := off + n
-		high := low + li
-		data := v.data[low:high]
-
-		{
-			p := (*reflect.StringHeader)(unsafe.Pointer(&f.fieldName))
-			p.Data = uintptr(unsafe.Pointer(&data[0]))
-			p.Len = len(data)
-		}
-		off = high
+		p := (*reflect.StringHeader)(unsafe.Pointer(&f.fieldName))
+		p.Data = uintptr(unsafe.Pointer(&msg[0]))
+		p.Len = len(msg)
+		data = next
 	}
 
 	{
-	loopPhone:
-		l, n := varuint.Uint64(v.data[off:])
-		if n < 0 {
-			return nil, io.ErrUnexpectedEOF
+		msg, next, err := chitinParseLengthPrefixed(data)
+		if err != nil {
+			return nil, err
 		}
-		if l == 0 {
-			// padding
-			off += n
-			goto loopPhone
-		}
-		l--
-
-		const maxInt = int(^uint(0) >> 1)
-		if l > uint64(maxInt) {
-			// technically, it has to be truncated because it wouldn't fit
-			// in memory ;)
-			return nil, io.ErrUnexpectedEOF
-		}
-		li := int(l)
-
-		// TODO prevent overflow here
-		end := off + n + li
-		if end > len(v.data) {
-			return nil, io.ErrUnexpectedEOF
-		}
-
-		low := off + n
-		high := low + li
-		data := v.data[low:high]
-
-		{
-			p := (*reflect.StringHeader)(unsafe.Pointer(&f.fieldPhone))
-			p.Data = uintptr(unsafe.Pointer(&data[0]))
-			p.Len = len(data)
-		}
-		off = high
+		p := (*reflect.StringHeader)(unsafe.Pointer(&f.fieldPhone))
+		p.Data = uintptr(unsafe.Pointer(&msg[0]))
+		p.Len = len(msg)
+		data = next
 	}
 
 	return f, nil
