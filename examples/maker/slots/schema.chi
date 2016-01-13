@@ -1,0 +1,10 @@
+chitin v1
+
+message Person v1 {
+	wire format: v1
+
+	slots {
+	      age uint16
+	      siblings uint16
+	}
+}
