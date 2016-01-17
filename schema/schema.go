@@ -35,7 +35,7 @@ func (s *SchemaV1) Generate(dst io.Writer, pkg string) error {
 		Schema:  s,
 	}
 	if err := codegen.Execute(&buf, data); err != nil {
-		return err
+		return fmt.Errorf("template error: %v", err)
 	}
 	pretty, err := format.Source(buf.Bytes())
 	if err != nil {
