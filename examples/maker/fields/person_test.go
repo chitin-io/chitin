@@ -1,6 +1,6 @@
 package person_test
 
-//TODO go:generate go run gen.go
+//go:generate go run gen.go
 
 import (
 	"fmt"

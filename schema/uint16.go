@@ -23,6 +23,10 @@ func (Uint16) GoSlotGetter() string {
 	return `return binary.BigEndian.Uint16(data)`
 }
 
+func (Uint16) GoSlotSetter() string {
+	return `binary.BigEndian.PutUint16(data, v)`
+}
+
 func (Uint16) GoStateType() string { return `uint16` }
 
 func (Uint16) GoFieldPrep(stateVar string) string {
@@ -42,4 +46,14 @@ func (Uint16) GoFieldPrep(stateVar string) string {
 
 func (Uint16) GoFieldGetter(stateVar string) string {
 	return fmt.Sprintf(`return %s`, stateVar)
+}
+
+func (Uint16) GoFieldBytes(stateVar string) string {
+	return fmt.Sprintf(`
+	var lb [varuint.MaxUint64Len]byte
+	var ll int
+
+	ll = varuint.PutUint64(lb[:], %s)
+	data = append(data, lb[:ll]...)
+`, stateVar)
 }

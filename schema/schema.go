@@ -2,6 +2,7 @@ package schema
 
 import (
 	"bytes"
+	"fmt"
 	"go/format"
 	"io"
 	"log"
@@ -102,6 +103,11 @@ type SlotType interface {
 	SlotSize() uint64
 	GoType() string
 	GoSlotGetter() string
+	// Return a template code snippet that sets the slow stored in
+	// byte slice `data`.
+	// Local variable `v` is the value to be set, of the type returned
+	// by GoType.
+	GoSlotSetter() string
 }
 
 type Field struct {
@@ -128,6 +134,10 @@ type FieldType interface {
 	GoFieldPrep(stateVar string) string
 
 	GoFieldGetter(stateVar string) string
+
+	// Return a template code snippet that appends to byte slice
+	// `data` the marshaled contents of the field.
+	GoFieldBytes(stateVar string) string
 }
 
 type FieldOptions struct {

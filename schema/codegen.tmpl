@@ -113,4 +113,42 @@ func (f *{{$type}}ViewFields) {{$field.Name | ucFirst}}() {{$field.Kind.GoType}}
 
 {{end}}
 
+func New{{$type}}Maker() *{{$type}}Maker {
+	maker := &{{$type}}Maker{}
+	return maker
+}
+
+type {{$type}}Maker struct {
+        slots     [slotsLen{{$type}}View]byte
+{{range $fieldIdx, $field := $fields}}
+	field{{$field.Name | ucFirst}} {{$field.Kind.GoType}}
+{{end}}
+}
+
+func (m *{{$type}}Maker) Bytes() []byte {
+	// TODO what do we guarantee about immutability of return value?
+
+	// TODO do this in just one allocation
+	data := m.slots[:]
+{{if $fields}}
+	{{range $fieldIdx, $field := $fields}}
+	{ {{$field.Kind.GoFieldBytes (printf "m.field%s" ($field.Name | ucFirst))}} }
+	{{end}}
+{{end}}
+	return data
+}
+
+{{range $slotIdx, $slot := $slots}}
+func (m *{{$type}}Maker) Set{{$slot.Name | ucFirst}}(v {{$slot.Kind.GoType}}) {
+	data := m.slots[{{(index $slotOffsets $slotIdx).Start}}:{{(index $slotOffsets $slotIdx).Stop}}]
+	{{$slot.Kind.GoSlotSetter}}
+}
+{{end}}
+
+{{range $fieldIdx, $field := $fields}}
+func (m *{{$type}}Maker) Set{{$field.Name | ucFirst}}(v {{$field.Kind.GoType}}) {
+     m.field{{$field.Name | ucFirst}} = v
+}
+{{end}}
+
 {{end}}
