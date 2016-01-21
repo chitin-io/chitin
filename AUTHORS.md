@@ -13,4 +13,5 @@ If your contribution is copyrighted by a corporation, use the form
 
 Please keep the list sorted.
 
+- Andrew Leap <andyleap@andyleap.net>
 - Tommi Virtanen <tv@eagain.net>
