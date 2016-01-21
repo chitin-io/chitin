@@ -2,11 +2,9 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 	"os"
 
-	"chitin.io/chitin/parser"
 	"chitin.io/chitin/schema"
 	"github.com/kr/pretty"
 )
@@ -27,12 +25,13 @@ func main() {
 		*outputFile = *inputFile + ".gen.go"
 	}
 
-	p := parser.New()
-	data, err := ioutil.ReadFile(*inputFile)
+	f, err := os.Open(*inputFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	s, err := p.ParseString(string(data))
+	defer f.Close()
+
+	s, err := schema.Parse(f)
 	if err != nil {
 		log.Fatal(err)
 	}
