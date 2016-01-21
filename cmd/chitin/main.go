@@ -1,4 +1,3 @@
-// chitin-parser project main.go
 package main
 
 import (
@@ -7,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"chitin.io/chitin/parser"
 	"chitin.io/chitin/schema"
 	"github.com/kr/pretty"
 )
@@ -27,7 +27,7 @@ func main() {
 		*outputFile = *inputFile + ".gen.go"
 	}
 
-	p := MakeParser()
+	p := parser.New()
 	data, err := ioutil.ReadFile(*inputFile)
 	if err != nil {
 		log.Fatal(err)

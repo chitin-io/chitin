@@ -1,5 +1,4 @@
-// chitin-parser project main.go
-package main
+package parser
 
 import (
 	"fmt"
@@ -9,7 +8,7 @@ import (
 	. "github.com/andyleap/parser"
 )
 
-func MakeParser() *Grammar {
+func New() *Grammar {
 	ws := Mult(0, 0, Set("\\s"))
 	rws := Mult(1, 0, Set("\\s"))
 
