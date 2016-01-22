@@ -1,7 +1,11 @@
 #!/bin/sh
 set -e
 
-set +x
-cd "$(dirname "$0")/../schema"
-go-fuzz-build chitin.io/chitin/schema
-go-fuzz -bin=schema-fuzz.zip -workdir=testdata/fuzz
+run () {
+    echo "# $@"
+    "$@"
+}
+
+run cd "$(dirname "$0")/../schema/testdata"
+[ -e schema-fuzz.zip ] || run go-fuzz-build chitin.io/chitin/schema
+run go-fuzz -bin=schema-fuzz.zip -workdir=fuzz
