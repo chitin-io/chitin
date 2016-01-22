@@ -107,3 +107,46 @@ type PersonV2ViewFields struct {
 func (f *PersonV2ViewFields) Name() string {
 	return f.fieldName
 }
+
+func NewPersonV2Maker() *PersonV2Maker {
+	maker := &PersonV2Maker{}
+	return maker
+}
+
+type PersonV2Maker struct {
+	slots [slotsLenPersonV2View]byte
+
+	fieldName string
+}
+
+func (m *PersonV2Maker) Bytes() []byte {
+	// TODO what do we guarantee about immutability of return value?
+
+	// TODO do this in just one allocation
+	data := m.slots[:]
+
+	{
+		var lb [varuint.MaxUint64Len]byte
+		var ll int
+
+		ll = varuint.PutUint64(lb[:], uint64(len(m.fieldName))+1)
+		data = append(data, lb[:ll]...)
+		data = append(data, m.fieldName...)
+	}
+
+	return data
+}
+
+func (m *PersonV2Maker) SetAge(v uint16) {
+	data := m.slots[0:2]
+	binary.BigEndian.PutUint16(data, v)
+}
+
+func (m *PersonV2Maker) SetSiblings(v uint16) {
+	data := m.slots[2:4]
+	binary.BigEndian.PutUint16(data, v)
+}
+
+func (m *PersonV2Maker) SetName(v string) {
+	m.fieldName = v
+}
