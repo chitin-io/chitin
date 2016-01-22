@@ -11,7 +11,8 @@ indicated in the file `CONTRIBUTING.md`.
 If your contribution is copyrighted by a corporation, use the form
 `Firstname Lastname <first.last@example.com> for Example, Inc`.
 
-Please keep the list sorted.
+Please keep the list sorted (bytewise lexicographical order, each line
+as-is, ignoring locales).
 
 - Andrew Leap <andyleap@andyleap.net>
 - Tommi Virtanen <tv@eagain.net>
