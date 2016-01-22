@@ -1,3 +1,3 @@
 package person
 
-//go:generate go run gen.go
+//go:generate chitin -pkg person -i schema.chi -o chitin.gen.go
