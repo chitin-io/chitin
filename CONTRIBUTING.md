@@ -58,5 +58,6 @@ By making a contribution to this project, I certify that:
 ```
 
 Record your agreement by adding your legal name and email address to
-the file `AUTHORS.md` as your first commit, and make sure the you use
-the same name and address for your Git authorship information.
+the file `AUTHORS.md` as the only change in your first commit, and
+make sure the you use the same name and address for your Git
+authorship information.
