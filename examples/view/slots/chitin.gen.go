@@ -81,3 +81,31 @@ func (v *PersonV1View) Siblings() uint16 {
 	data := v.data[2:4]
 	return binary.BigEndian.Uint16(data)
 }
+
+func NewPersonV1Maker() *PersonV1Maker {
+	maker := &PersonV1Maker{}
+	return maker
+}
+
+type PersonV1Maker struct {
+	slots [slotsLenPersonV1View]byte
+}
+
+func (m *PersonV1Maker) Bytes() []byte {
+	// TODO what do we guarantee about immutability of return value?
+
+	// TODO do this in just one allocation
+	data := m.slots[:]
+
+	return data
+}
+
+func (m *PersonV1Maker) SetAge(v uint16) {
+	data := m.slots[0:2]
+	binary.BigEndian.PutUint16(data, v)
+}
+
+func (m *PersonV1Maker) SetSiblings(v uint16) {
+	data := m.slots[2:4]
+	binary.BigEndian.PutUint16(data, v)
+}
