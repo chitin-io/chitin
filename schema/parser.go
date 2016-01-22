@@ -92,17 +92,21 @@ func makeParser() *p.Grammar {
 	slotItemFormat := p.And(
 		p.Tag("name", p.Mult(1, 0, p.Set("\\w"))), p.Require(ws, p.Tag("type", types), ws))
 	slotItemFormat.Node(func(m p.Match) (p.Match, error) {
+		slottype, ok := p.GetTag(m, "type").(SlotType)
+		if !ok {
+			return nil, fmt.Errorf("%T is not a SlotType", p.GetTag(m, "type"))
+		}
 		slot := Slot{
 			Name: p.String(p.GetTag(m, "name")),
-			Kind: p.GetTag(m, "type").(SlotType),
+			Kind: slottype,
 		}
-		return slot, nil
+		return p.TagMatch("slot", slot), nil
 	})
 
 	slotFormat := p.And(
 		p.Lit("slots"), p.Require(ws,
 			p.Lit("{"), ws,
-			p.Tag("slots", p.Mult(0, 0, p.And(slotItemFormat))),
+			p.Mult(0, 0, p.And(slotItemFormat)),
 			p.Lit("}"),
 		))
 
@@ -113,13 +117,13 @@ func makeParser() *p.Grammar {
 			Name: p.String(p.GetTag(m, "name")),
 			Kind: p.GetTag(m, "type").(FieldType),
 		}
-		return field, nil
+		return p.TagMatch("field", field), nil
 	})
 
 	fieldFormat := p.And(
 		p.Lit("fields"), p.Require(ws,
 			p.Lit("{"), ws,
-			p.Tag("fields", p.Mult(0, 0, p.And(fieldItemFormat))),
+			p.Mult(0, 0, p.And(fieldItemFormat)),
 			p.Lit("}"),
 		))
 
@@ -144,12 +148,12 @@ func makeParser() *p.Grammar {
 		wireFormat, _ := p.GetTag(m, "wireFormat").(uint32)
 
 		slots := []Slot{}
-		for _, slot := range p.GetTag(m, "slots").(p.MatchTree) {
-			slots = append(slots, slot.(p.MatchTree)[0].(Slot))
+		for _, slot := range p.GetTags(m, "slot") {
+			slots = append(slots, slot.(Slot))
 		}
 		fields := []Field{}
-		for _, field := range p.GetTag(m, "fields").(p.MatchTree) {
-			fields = append(fields, field.(p.MatchTree)[0].(Field))
+		for _, field := range p.GetTags(m, "field") {
+			fields = append(fields, field.(Field))
 		}
 		if len(fields) == 0 {
 			msg := &FixedMessage{
@@ -219,7 +223,12 @@ func makeParser() *p.Grammar {
 		envelopes := make(map[string]Envelope)
 		for _, msg := range p.GetTags(m, "envelope") {
 			name := p.String(p.GetTag(msg, "name"))
-			envelopes[name] = p.GetTag(msg, "body").(Envelope)
+			var e Envelope
+			ok := false
+			if e, ok = p.GetTag(msg, "body").(Envelope); !ok {
+				return nil, fmt.Errorf("Envelope %s has no mapping!", name)
+			}
+			envelopes[name] = e
 		}
 
 		s := &SchemaV1{
